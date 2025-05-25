@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import UploadDataset from "./components/UploadDataset";
 import TrainScreen from "./components/TrainScreen";
 import PredictForm from "./components/PredictForm";
@@ -10,20 +10,20 @@ export default function App() {
   const [featureKeys, setFeatureKeys] = useState<string[]>([]);
 
   return (
-    <>
-      <header className="bg-white shadow mb-8">
-        <div className="max-w-6xl mx-auto flex items-center justify-between p-4">
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Uni-logo" className="h-8 w-8" />
-            <span className="font-semibold text-xl">
-              Student Churn Predictor
-            </span>
-          </div>
-          <span className="font-medium">Ім'я Прізвище</span>
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans">
+      <header className="bg-gray-800 px-6 py-4 shadow flex items-center gap-6">
+        <img
+          src="../assets/image.png"
+          alt="Лого університету"
+          className="h-12 w-auto shrink-0"
+        />
+        <div>
+          <p className="text-sm">Розроблено студентом групи САМ-11</p>
+          <p className="font-semibold">Шаріфов А.А.</p>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 pb-16">
+      <main className="max-w-5xl mx-auto px-6 py-10 space-y-10">
         {!dataset && (
           <UploadDataset
             onReady={(rows, keys) => {
@@ -46,6 +46,6 @@ export default function App() {
           <PredictForm model={model} featureKeys={featureKeys} />
         )}
       </main>
-    </>
+    </div>
   );
 }

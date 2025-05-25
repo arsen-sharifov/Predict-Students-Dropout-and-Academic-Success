@@ -18,26 +18,33 @@ export default function UploadDataset({ onReady }: Props) {
       delimiter: ";",
       skipEmptyLines: true,
       dynamicTyping: true,
-      transformHeader: (h) => h.trim().replace(/"+/g, ""),
+      transformHeader: (h) => h.trim().replace(/\"+/g, ""),
       complete: ({ data }) => {
         if (!data.length) {
-          setErr("CSV порожній");
+          setErr("CSV порожній або некоректний.");
           return;
         }
-        const featureKeys = Object.keys(data[0]).filter((k) => k !== "Target");
-        onReady(data, featureKeys);
+        const keys = Object.keys(data[0]).filter((k) => k !== "Target");
+        onReady(data, keys);
       },
       error: (e) => setErr(`Помилка парсингу: ${e.message}`),
     });
   };
 
   return (
-    <section className="mb-10">
-      <h2 className="font-semibold text-lg mb-2">
-        1️⃣ Завантажте датасет (CSV із “;”)
-      </h2>
-      <input type="file" accept=".csv" ref={fileRef} onChange={handleFile} />
-      {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
+    <section className="bg-gray-800/70 rounded-xl p-8 shadow">
+      <h2 className="text-2xl font-semibold mb-6">1️⃣ Завантажте датасет</h2>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv"
+        onChange={handleFile}
+        className="block w-full text-gray-100 file:bg-indigo-600 file:hover:bg-indigo-700
+                   file:border-0 file:rounded-md file:px-5 file:py-2 cursor-pointer"
+      />
+
+      {err && <p className="text-red-400 mt-4">{err}</p>}
     </section>
   );
 }

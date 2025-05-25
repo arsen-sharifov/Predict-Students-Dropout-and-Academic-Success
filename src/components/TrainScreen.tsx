@@ -13,12 +13,12 @@ export default function TrainScreen({ data, featureKeys, onTrained }: Props) {
   const [training, setTraining] = useState(false);
   const [valAcc, setValAcc] = useState<number | null>(null);
 
-  const handleTrain = async () => {
+  const train = async () => {
     setTraining(true);
     setValAcc(null);
 
-    const norm = (s: string) => (s ?? "").toString().trim().toLowerCase();
-    const records = data
+    const norm = (s = "") => s.trim().toLowerCase();
+    const recs = data
       .filter((r) =>
         ["dropout", "graduate", "graduated"].includes(norm(r.Target))
       )
@@ -27,21 +27,22 @@ export default function TrainScreen({ data, featureKeys, onTrained }: Props) {
         y: norm(r.Target) === "dropout" ? 1 : 0,
       }));
 
-    if (!records.length) {
-      alert("У датасеті немає рядків з мітками Dropout / Graduate.");
+    if (!recs.length) {
+      alert("Немає рядків із мітками Dropout/Graduate.");
       setTraining(false);
       return;
     }
 
-    tf.util.shuffle(records, SEED);
+    tf.util.shuffle(recs, SEED);
 
-    const featCnt = featureKeys.length;
-    const trainCnt = Math.floor(records.length * 0.8);
-    const trainR = records.slice(0, trainCnt);
-    const valR = records.slice(trainCnt);
+    const F = featureKeys.length;
+    const split = Math.floor(recs.length * 0.8);
+    const trainR = recs.slice(0, split);
+    const valR = recs.slice(split);
 
-    const mean = Array(featCnt).fill(0);
-    const std = Array(featCnt).fill(0);
+    // Z-score
+    const mean = Array(F).fill(0);
+    const std = Array(F).fill(0);
     trainR.forEach((r) => r.x.forEach((v, i) => (mean[i] += v)));
     mean.forEach((_, i) => (mean[i] /= trainR.length));
     trainR.forEach((r) =>
@@ -53,30 +54,26 @@ export default function TrainScreen({ data, featureKeys, onTrained }: Props) {
     std.forEach((_, i) => (std[i] = Math.sqrt(std[i] / trainR.length) || 1e-8));
     const z = (v: number, i: number) => (v - mean[i]) / std[i];
 
-    const toTensor = (recs: typeof records) => ({
+    const tensor = (arr: typeof recs) => ({
       xs: tf.tensor2d(
-        recs.map((r) => r.x.map((v, i) => z(v, i))),
-        [recs.length, featCnt]
+        arr.map((r) => r.x.map((v, i) => z(v, i))),
+        [arr.length, F]
       ),
       ys: tf.tensor2d(
-        recs.map((r) => [r.y]),
-        [recs.length, 1]
+        arr.map((r) => [r.y]),
+        [arr.length, 1]
       ),
     });
+    const { xs: tXs, ys: tYs } = tensor(trainR);
+    const { xs: vXs, ys: vYs } = tensor(valR);
 
-    const { xs: trainXs, ys: trainYs } = toTensor(trainR);
-    const { xs: valXs, ys: valYs } = toTensor(valR);
-
-    const dropCnt = trainR.filter((r) => r.y === 1).length;
-    const gradCnt = trainR.length - dropCnt;
-    const classWeight = {
-      0: trainR.length / (2 * gradCnt),
-      1: trainR.length / (2 * dropCnt),
-    };
+    const dCnt = trainR.filter((r) => r.y === 1).length;
+    const gCnt = trainR.length - dCnt;
+    const cw = { 0: trainR.length / (2 * gCnt), 1: trainR.length / (2 * dCnt) };
 
     const model = tf.sequential();
     model.add(
-      tf.layers.dense({ units: 32, activation: "relu", inputShape: [featCnt] })
+      tf.layers.dense({ units: 32, activation: "relu", inputShape: [F] })
     );
     model.add(tf.layers.dropout({ rate: 0.2 }));
     model.add(tf.layers.dense({ units: 16, activation: "relu" }));
@@ -87,40 +84,40 @@ export default function TrainScreen({ data, featureKeys, onTrained }: Props) {
       metrics: ["accuracy"],
     });
 
-    await model.fit(trainXs, trainYs, {
+    await model.fit(tXs, tYs, {
       epochs: 60,
       batchSize: 32,
-      validationData: [valXs, valYs],
-      classWeight,
+      validationData: [vXs, vYs],
+      classWeight: cw,
       verbose: 0,
       callbacks: {
-        onEpochEnd: (_e, logs) => {
-          if (logs?.val_accuracy != null)
-            setValAcc(logs.val_accuracy as number);
+        onEpochEnd: (_, logs) => {
+          if (logs?.val_accuracy) setValAcc(logs.val_accuracy as number);
         },
       },
     });
 
     (window as any).__SCALER__ = { mean, std };
-
-    tf.dispose([trainXs, trainYs, valXs, valYs]);
+    tf.dispose([tXs, tYs, vXs, vYs]);
     setTraining(false);
     onTrained(model);
   };
 
   return (
-    <section className="mb-10">
-      <h2 className="font-semibold text-lg mb-2">2️⃣ Train model</h2>
+    <section className="bg-gray-800/70 rounded-xl p-8 shadow">
+      <h2 className="text-2xl font-semibold mb-6">2️⃣ Навчити модель</h2>
+
       <button
-        onClick={handleTrain}
+        onClick={train}
         disabled={training}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
+        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded"
       >
-        {training ? "Training…" : "Train"}
+        {training ? "Навчання…" : "Навчити"}
       </button>
-      {valAcc !== null && (
-        <p className="mt-3">
-          Validation accuracy:&nbsp;
+
+      {valAcc != null && (
+        <p className="mt-4">
+          Валідаційна точність:&nbsp;
           <b>{(valAcc * 100).toFixed(2)}%</b>
         </p>
       )}
