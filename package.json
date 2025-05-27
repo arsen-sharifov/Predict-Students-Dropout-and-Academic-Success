@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "homepage": "https://arsen-sharifov.github.io/Predict-Students-Dropout-and-Academic-Success",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -21,6 +24,8 @@
     "@types/react-dom": "^18.0.11",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.21",
+    "gh-pages": "^6.3.0",
+    "lucide-react": "^0.511.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.3.3",
